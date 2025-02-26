@@ -67,7 +67,7 @@ $\Phi(\omega)$越大, 在时间域体现出来的到时应该越滞后, 相当�
 
 待求方程的时间域表达:
 $$
-u_{tt}+\alpha u_t - c^2 \Delta U=f
+u_{tt}+\alpha u_t - c^2 \Delta u=f
 $$
 转到频率域:
 $$
