@@ -3,12 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown Viewer</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.0.3/showdown.min.js"></script>
-    <!-- KaTeX CSS and JS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.3/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.3/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.3/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <title>File Viewer</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -47,6 +43,11 @@
             text-align: center;
         }
 
+        #file-list li.selected {
+            background: #3066a0;
+            color: white;
+        }
+
         #file-list li:hover {
             background: #d6d6d6;
         }
@@ -64,6 +65,7 @@
             background: #fff;
             min-height: 90vh;
         }
+
         #content img {
             max-width: 50%; /* Adjust the percentage as needed */
             height: auto; /* Maintain aspect ratio */
@@ -71,77 +73,130 @@
             margin: 10px auto; /* Center the images */
         }
 
+
+        .large-letter {
+            font-size: 1.3em;  /* Make "C" larger */
+            font-weight: bold;
+        }
+
+        .small-letter {
+            font-size: .2em;  /* Make "C" larger */
+            font-weight: bold;
+        }
     </style>
+
+    <!-- KaTeX CSS and JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.3/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.3/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.3/dist/contrib/auto-render.min.js"></script>
+
 </head>
 <body>
 
     <!-- Sidebar for File List -->
     <div id="sidebar">
-        <h2>Markdown Files</h2>
+        <h2><span class="large-letter">Science Log</span></span></h2>
         <ul id="file-list"></ul>
     </div>
-
+    
     <!-- Main Content Area -->
     <div id="content-area">
-        <div id="content"><p>Select a file to display content.</p></div>
+        <div id="content">
+            <!-- Initial content will be replaced with the welcome.html content -->
+        </div>
     </div>
 
     <script>
-        // Manually list markdown files (GitHub Pages cannot fetch directory listings)
-        const markdownFiles = ['250214-结合zzr结果反演.md']; // Update this manually
-// Function to dynamically add file names to the sidebar
-function loadFileList() {
-        const list = document.getElementById('file-list');
-        list.innerHTML = ''; // Clear existing items
-        markdownFiles.forEach(file => {
-            const listItem = document.createElement('li');
-            listItem.innerText = file;
-            listItem.onclick = () => {
-                // Update the URL without reloading the page
-                const newUrl = window.location.origin + window.location.pathname + `?file=${encodeURIComponent(file)}`;
-                history.pushState(null, '', newUrl);
-                showContext(file);
-            };
-            list.appendChild(listItem);
-        });
-    }
-
-    // Function to fetch and display the content of the selected markdown file
-    function showContext(file) {
-        fetch(file)
-            .then(response => {
-                if (!response.ok) throw new Error('File not found');
-                return response.text();
-            })
-            .then(text => {
-                let converter = new showdown.Converter();
-                let htmlContent = converter.makeHtml(text);
-                document.getElementById('content').innerHTML = htmlContent;
-                renderMathInElement(document.getElementById('content')); // Process KaTeX formulas
-            })
-            .catch(error => {
-                document.getElementById('content').innerHTML = `<p style="color:red;">Error loading file: ${file}</p>`;
+        // Manually list the HTML and PDF files
+        const files = ['outline.md', '250214-结合zzr结果反演.md', '250221-Tmatrix.md', '250222-FD.md', '250226-FEMandTmatrix.html'
+        ]; // Update this manually
+    
+        // Function to load the file list into the sidebar
+        function loadFileList() {
+            const list = document.getElementById('file-list');
+            list.innerHTML = ''; // Clear existing items
+            files.forEach(file => {
+                const listItem = createFileListItem(file);
+                list.appendChild(listItem);
             });
-    }
-
-    // Function to check URL for a file query and load it
-    function checkUrlForFile() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const file = urlParams.get('file');
-        if (file && markdownFiles.includes(file)) {
-            showContext(file);
         }
-    }
+    
+        // Create list item for each file, remove the file extension
+        function createFileListItem(file) {
+    const listItem = document.createElement('li');
+    const fileName = file.split('.')[0];  
+    listItem.innerText = fileName;
 
-    // Load the file list and check for a file in the URL on page load
-    window.onload = () => {
-        loadFileList();
-        checkUrlForFile();
+    listItem.onclick = () => {
+        document.querySelectorAll('#file-list li').forEach(item => item.classList.remove('selected'));
+        listItem.classList.add('selected');
+
+        // Update URL without reloading the page
+        history.pushState(null, '', `?file=${fileName}`);
+
+        loadFileContent(file);
     };
 
-    // Handle back/forward browser navigation
-    window.onpopstate = () => checkUrlForFile();
+    return listItem;
+}
+
+
+
+        // Load the content of the selected file
+        function loadFileContent(file) {
+            const contentDiv = document.getElementById('content');
+
+            if (file.endsWith('.html')) {
+                fetch(file)
+                    .then(response => {
+                        if (!response.ok) throw new Error('File not found');
+                        return response.text();
+                    })
+                    .then(text => {
+                        contentDiv.innerHTML = text;
+                        renderMathInElement(contentDiv);  // Re-run KaTeX if needed
+                    })
+                    .catch(error => {
+                        contentDiv.innerHTML = `<p style="color:red;">Error loading file: ${file}</p>`;
+                    });
+
+            } else if (file.endsWith('.pdf')) {
+                contentDiv.innerHTML = `<embed src="${file}" type="application/pdf" width="100%" height="1000px" />`;
+
+            } else if (file.endsWith('.md')) {
+                fetch(file)
+                    .then(response => {
+                        if (!response.ok) throw new Error('File not found');
+                        return response.text();
+                    })
+                    .then(text => {
+                        contentDiv.innerHTML = marked.parse(text); // Convert Markdown to HTML
+                    })
+                    .catch(error => {
+                        contentDiv.innerHTML = `<p style="color:red;">Error loading file: ${file}</p>`;
+                    });
+            }
+        }
+
+        function getFileFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const fileParam = urlParams.get('file'); // Get 'file' from URL
+    if (!fileParam) return 'outline.md'; // Default file
+
+    // Check if the file exists in the predefined list
+    return files.includes(fileParam + '.html') ? fileParam + '.html' :
+           files.includes(fileParam + '.pdf') ? fileParam + '.pdf' :
+           files.includes(fileParam + '.md') ? fileParam + '.md' : 'outline.md';
+}
+
+window.onload = () => {
+    loadFileList();
+    const fileToLoad = getFileFromURL();
+    loadFileContent(fileToLoad);
+};
+
     </script>
+    
 
 </body>
 </html>
